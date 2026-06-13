@@ -178,7 +178,7 @@
     const st = el("pxStatus"); st.textContent = "갱신 중…"; st.className = "sub";
     const now = new Date(), s = new Date(now); s.setDate(s.getDate() - 16);
     const url = `https://api.finance.naver.com/siseJson.naver?symbol=${C.meta.ticker}&requestType=1&startTime=${fmtD(s)}&endTime=${fmtD(now)}&timeframe=day`;
-    const proxies = [u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`];
+    const proxies = [u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`, u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`];
     for (const p of proxies) {
       try {
         const r = await fetch(p(url)); if (!r.ok) continue;
@@ -321,7 +321,22 @@
 
   function refresh() { renderResults(compute(state)); }
 
+  // ---------- theme (light/dark) ----------
+  function initTheme() {
+    let saved; try { saved = localStorage.getItem("eq-theme"); } catch (e) {}
+    if (saved === "light") document.documentElement.classList.add("light");
+    const btn = el("themeBtn");
+    const sync = () => { btn.textContent = document.documentElement.classList.contains("light") ? "🌙 다크" : "☀ 라이트"; };
+    sync();
+    btn.addEventListener("click", () => {
+      document.documentElement.classList.toggle("light");
+      try { localStorage.setItem("eq-theme", document.documentElement.classList.contains("light") ? "light" : "dark"); } catch (e) {}
+      sync();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
     el("title").textContent = `${C.meta.name} (${C.meta.ticker})`;
     el("subtitle").innerHTML = `${C.meta.sector} · <span class="sub">${C.meta.origin}</span>`;
     el("genstamp").textContent = "생성 " + C.meta.asOf;
