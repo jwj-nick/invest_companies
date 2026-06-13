@@ -6,7 +6,6 @@
   --bg:#eef1f5; --panel:#ffffff; --card:#f6f7f9; --line:#e2e6ec;
   --tx:#1a1d24; --sub:#5b6472; --acc:#2563eb; --hot:#e2533a; --up:#16a34a; --down:#dc2626; --assume:#c2790f;
 }
-:root,body{transition:background-color .2s,color .2s}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif;font-size:14px;line-height:1.5}
 h1{font-size:21px;margin:0} h2{font-size:17px;margin:0 0 14px;border-left:4px solid var(--acc);padding-left:10px}
