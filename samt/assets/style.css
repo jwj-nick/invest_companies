@@ -36,6 +36,7 @@ main{max-width:1180px;margin:0 auto;padding:20px}
 .chart .grid{stroke:var(--line);stroke-width:1}
 .chart .yl,.chart .xl{fill:var(--sub);font-size:13px;font-family:inherit}
 .chart .bl{font-size:13px;font-weight:700}
+.chart .wk{stroke:#e7e9ee;stroke-width:1.6}
 .chart .mklab{font-size:14px;font-weight:700}
 .cb{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -135,6 +136,7 @@ sup.fn.assref{color:var(--assume)}
   .grid2,.profile{grid-template-columns:1fr 1fr}.split{grid-template-columns:1fr 1fr}
   .calwrap{grid-template-columns:repeat(3,1fr)}
   .cell.ev,.chart rect,.chart path,.cell .dot,.elist .d,.sw{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .chart .wk{stroke:#000}
   .narrative .warn{background:#f3f3f3;border-color:#000}
   a{color:#000;text-decoration:underline}
   sup.fn,sup.fn.assref{color:#000}

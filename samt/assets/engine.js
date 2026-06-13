@@ -44,16 +44,20 @@
 
   function svgBars(series, opt) {
     opt = opt || {}; const W = 1000, H = opt.h || 260, pad = 46, padB = 30;
-    const vals = series.map(d => d.value); const maxV = Math.max(...vals, 1);
+    const maxV = Math.max(...series.map(d => Math.max(d.value, d.hi || 0)), 1);
     const n = series.length, bw = (W - pad - 12) / n * 0.62, gap = (W - pad - 12) / n;
     const y = v => (H - padB) - (H - padB - 16) * (v / maxV);
     let grid = ""; for (let g = 0; g <= 3; g++) { const v = maxV * g / 3, yy = y(v);
       grid += `<line x1="${pad}" y1="${yy}" x2="${W - 12}" y2="${yy}" class="grid"/><text x="${pad - 6}" y="${yy + 4}" class="yl" text-anchor="end">${opt.fmt ? opt.fmt(v) : wonK(v)}</text>`; }
-    let bars = ""; series.forEach((d, i) => { const bx = pad + gap * i + (gap - bw) / 2, by = y(d.value), bh = (H - padB) - by;
-      const col = d.hot ? "#ff6b4a" : (opt.color || "#4da3ff");
-      bars += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="3" fill="${col}"/>` +
-              `<text x="${bx + bw / 2}" y="${by - 6}" class="bl" text-anchor="middle" fill="${col}">${opt.lab ? opt.lab(d.value) : wonK(d.value)}</text>` +
-              `<text x="${bx + bw / 2}" y="${H - 8}" class="xl" text-anchor="middle">${d.label}</text>`; });
+    let bars = ""; series.forEach((d, i) => { const bx = pad + gap * i + (gap - bw) / 2, by = y(d.value), bh = (H - padB) - by, cxp = bx + bw / 2;
+      const col = d.hot ? "#ff6b4a" : (d.est ? "#f0a13a" : (opt.color || "#4da3ff"));
+      const rectAttr = d.est ? `fill="${col}" fill-opacity="0.28" stroke="${col}" stroke-width="1.5" stroke-dasharray="4 3"` : `fill="${col}"`;
+      bars += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="3" ${rectAttr}/>`;
+      if (d.lo != null && d.hi != null) { const yh = y(d.hi), yl = y(d.lo);
+        bars += `<line x1="${cxp}" y1="${yh}" x2="${cxp}" y2="${yl}" class="wk"/><line x1="${cxp - 6}" y1="${yh}" x2="${cxp + 6}" y2="${yh}" class="wk"/><line x1="${cxp - 6}" y1="${yl}" x2="${cxp + 6}" y2="${yl}" class="wk"/>`; }
+      const labY = (d.est && d.hi != null) ? y(d.hi) - 7 : by - 6;
+      bars += `<text x="${cxp}" y="${labY}" class="bl" text-anchor="middle" fill="${col}">${opt.lab ? opt.lab(d.value) : wonK(d.value)}</text>` +
+              `<text x="${cxp}" y="${H - 8}" class="xl" text-anchor="middle">${d.label}</text>`; });
     return `<svg viewBox="0 0 ${W} ${H}" class="chart">${grid}${bars}</svg>`;
   }
 
@@ -122,15 +126,25 @@
 
   // ---------- history charts ----------
   function renderHistory() {
-    el("revChart").innerHTML = svgBars(C.annualHistory.map(a => ({ label: a.year, value: a.rev })),
-      { h: 240, color: "#4da3ff", lab: v => (v / 10000).toFixed(1) + "조" });
-    el("qChart").innerHTML = svgBars(C.quarterlyHistory.map(q => ({ label: q.q, value: q.rev, hot: q.hot })),
-      { h: 220, lab: v => (v / 10000).toFixed(2) + "조" });
-    el("dpsChart").innerHTML = svgBars(C.dpsHistory.map(d => ({ label: d.year, value: d.dps })),
-      { h: 200, color: "#35c46b", lab: v => wonK(v) });
+    const e = C.estimate2026;
+    const joLab = v => (v / 10000).toFixed(1) + "조";
+    // 연간 매출 + 2026E 범위
+    const rev = C.annualHistory.map(a => ({ label: a.year, value: a.rev }));
+    if (e) rev.push({ label: "2026E", value: e.revenue.mid, lo: e.revenue.lo, hi: e.revenue.hi, est: true });
+    el("revChart").innerHTML = svgBars(rev, { h: 240, color: "#4da3ff", lab: joLab });
+    // 분기 매출 + Q2~Q4 2026E 범위
+    const q = C.quarterlyHistory.map(x => ({ label: x.q, value: x.rev, hot: x.hot }));
+    if (e) ["26Q2E", "26Q3E", "26Q4E"].forEach(lab => q.push({ label: lab, value: e.quarter.mid, lo: e.quarter.lo, hi: e.quarter.hi, est: true }));
+    el("qChart").innerHTML = svgBars(q, { h: 220, lab: v => (v / 10000).toFixed(2) + "조" });
+    // DPS + 2026E 범위
+    const dps = C.dpsHistory.map(d => ({ label: d.year, value: d.dps }));
+    if (e) dps.push({ label: "2026E", value: e.dps.mid, lo: e.dps.lo, hi: e.dps.hi, est: true });
+    el("dpsChart").innerHTML = svgBars(dps, { h: 200, color: "#35c46b", lab: v => wonK(v) });
     el("regionChart").innerHTML = svgDonut(C.regionMix.parts);
-    el("opChart").innerHTML = svgBars(C.annualHistory.map(a => ({ label: a.year, value: +(a.op / a.rev * 100).toFixed(1) })),
-      { h: 200, color: "#f0a13a", lab: v => v.toFixed(1) + "%", fmt: v => v.toFixed(0) + "%" });
+    // 영업이익률 + 2026E 범위
+    const op = C.annualHistory.map(a => ({ label: a.year, value: +(a.op / a.rev * 100).toFixed(1) }));
+    if (e) op.push({ label: "2026E", value: e.opMargin.mid, lo: e.opMargin.lo, hi: e.opMargin.hi, est: true });
+    el("opChart").innerHTML = svgBars(op, { h: 200, color: "#f0a13a", lab: v => v.toFixed(1) + "%", fmt: v => v.toFixed(0) + "%" });
   }
 
   // ---------- company profile ----------

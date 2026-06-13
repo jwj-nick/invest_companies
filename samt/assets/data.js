@@ -66,6 +66,19 @@ window.COMPANY = {
     { year: "2025", dps: 230, src: "fnguide_snapshot" }
   ],
 
+  // 2026E 추정 범위 — 공개 컨센서스 부재(소형 유통주·Not Rated). Q1'26 확정 + Q2~Q4 메모리 사이클 시나리오(정상화↔피크지속) 추론.
+  // 막대=중앙값(mid), 수염=저(lo)~고(hi). src=assumption(주황).
+  estimate2026: {
+    src: "assumption",
+    note: "Q1 확정(매출 17,954·영익 3,273·OPM 18.2%) + Q2~Q4 시나리오. 低=마진 정상화·가격스파이크 진정, 高=피크 지속(≈Q1×4). 배당=순익×배당성향 26~32% 가정(이사회 재량 변수).",
+    revenue:   { lo: 51000, mid: 61500, hi: 72000 },   // 억
+    opMargin:  { lo: 9,     mid: 13,    hi: 17 },        // %
+    opProfit:  { lo: 4600,  mid: 8000,  hi: 11900 },     // 억
+    netIncome: { lo: 3400,  mid: 6000,  hi: 8800 },      // 억
+    dps:       { lo: 900,   mid: 1800,  hi: 2900 },       // 원
+    quarter:   { lo: 11000, mid: 14500, hi: 18000 }       // Q2~Q4 각 분기 매출(억)
+  },
+
   // 2026 Q1 지역별 매출 (억원, %)
   regionMix: { src: "leadeconomy_q1", parts: [
     { name: "국내", value: 9706, pct: 54.0 },
