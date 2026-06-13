@@ -30,6 +30,19 @@ main{max-width:1180px;margin:0 auto;padding:20px}
 .herostamp{margin-top:12px}
 .chartbox{min-width:0}
 .chart-h{font-size:13px;color:var(--sub);margin-bottom:6px;font-weight:600}
+.pxctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:8px}
+.pxbtns{display:flex;gap:4px}
+.pxbtns button{background:var(--card);border:1px solid var(--line);color:var(--sub);border-radius:7px;padding:5px 11px;font-size:12px;cursor:pointer}
+.pxbtns button:hover{border-color:var(--acc);color:var(--tx)}
+.pxbtns button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.pxdate{display:flex;align-items:center;gap:5px}
+.pxdate input[type=date]{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:4px 7px;font-size:12px;color-scheme:dark}
+.pxdate span{color:var(--sub)}
+#pxApply,.refbtn{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+.refbtn{border-color:var(--acc);color:var(--acc)}
+.refbtn:hover{background:var(--acc);color:#fff}
+.pxstats{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--sub);margin-bottom:8px}
+.pxstats b{color:var(--tx)}.pxstats .up b{color:var(--up)}.pxstats .down b{color:var(--down)}
 
 /* charts */
 .chart{width:100%;height:auto;display:block}
@@ -130,7 +143,7 @@ sup.fn.assref{color:var(--assume)}
   :root{--bg:#fff;--panel:#fff;--card:#fff;--line:#bbb;--tx:#111;--sub:#555}
   body{font-size:11px}
   .top{position:static;border-bottom:1px solid #000}
-  #printBtn,.presets,.marks{display:none!important}
+  #printBtn,.presets,.marks,.pxctl{display:none!important}
   .sctl input[type=range]{display:none}.sctl output{color:#000}.srow label{margin-bottom:0}
   .panel{border:1px solid #999;break-inside:avoid;page-break-inside:avoid;margin-bottom:10px}
   .grid2,.profile{grid-template-columns:1fr 1fr}.split{grid-template-columns:1fr 1fr}

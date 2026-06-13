@@ -95,33 +95,106 @@
   const D = C.engineDefaults, state = {};
   Object.keys(D).forEach(k => state[k] = D[k].value);
 
+  // ---------- date helpers (YYYYMMDD) ----------
+  const pad2 = n => String(n).padStart(2, "0");
+  const parseD = s => new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+  const fmtD = d => `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+  const dot = s => `${s.slice(0, 4)}.${s.slice(4, 6)}.${s.slice(6, 8)}`;
+  const iso = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+
   // ---------- hero ----------
   function renderHero() {
     const m = C.market;
-    const first = PX.length ? PX[0][1] : null, cur = m.price.value;
-    const chg = first ? ((cur - first) / first * 100) : 0;
     el("hero").innerHTML = `
-      <div class="price"><b>${wonK(cur)}</b><span class="unit">원</span>
-        <span class="chg ${chg >= 0 ? "up" : "down"}">${chg >= 0 ? "▲" : "▼"} ${Math.abs(chg).toFixed(0)}% <span class="sub">(2019.1 대비)</span></span></div>
+      <div class="price"><b id="heroPrice">${wonK(m.price.value)}</b><span class="unit">원</span>
+        ${pxRefreshed ? `<span class="chg up">↻ 갱신됨</span>` : ""}</div>
       <div class="herostats">
         <span>시총 <b>${jo(m.marketCap.value)}</b></span>
         <span>52주 <b>${wonK(m.week52.low)}~${wonK(m.week52.high)}</b></span>
-        <span>발행 <b>${(m.sharesTotal.value/1e6).toFixed(1)}M주</b></span>
+        <span>발행 <b>${(m.sharesTotal.value / 1e6).toFixed(1)}M주</b></span>
         <span>최대주주 <b>${m.majorShareholder.name} ${m.majorShareholder.stake}%</b></span>
       </div>
-      <div class="herostamp sub">${C.meta.market} · ${C.meta.ticker} · 기준일 ${m.price.date}${srcSup(m.price.src)}</div>`;
+      <div class="herostamp sub">${C.meta.market} · ${C.meta.ticker} · 종가기준일 ${dot(m.price.date.replace(/-/g, ""))}${srcSup(m.price.src)}</div>`;
   }
 
-  // ---------- price chart ----------
+  // ---------- price chart (기간 선택 + 갱신) ----------
+  const pxState = { period: "3Y", from: null, to: null };
+  let pxLive = null, pxRefreshed = false;
+  const PERIOD_M = { "6M": 6, "1Y": 12, "3Y": 36, "10Y": 120, "ALL": 600 };
+
+  function pxSeriesArray() {
+    let arr = PX.slice();
+    if (pxLive) { const last = arr[arr.length - 1];
+      if (pxLive.date > last[0]) arr.push([pxLive.date, pxLive.close]);
+      else if (pxLive.date === last[0]) arr[arr.length - 1] = [pxLive.date, pxLive.close]; }
+    return arr;
+  }
+
   function renderPriceChart() {
-    const series = PX.map(p => [p[0].slice(2, 4) + "/" + p[0].slice(4, 6), p[1]]);
-    // 마크: 불곰 리포트(2019-04 ~1840), 최고가
-    let bgIdx = PX.findIndex(p => p[0] === "201904");
-    let peakIdx = PX.reduce((mi, p, i, a) => p[1] > a[mi][1] ? i : mi, 0);
-    el("priceChart").innerHTML = svgLineArea(series, { h: 300, marks: [
-      { i: bgIdx < 0 ? 3 : bgIdx, label: "불곰'19 1,840", color: "#8b93a7" },
-      { i: peakIdx, label: "최고 " + wonK(PX[peakIdx][1]), color: "#ff6b4a" }
-    ]});
+    if (!PX.length) { el("priceChart").innerHTML = "<p class='sub'>주가 데이터 없음</p>"; return; }
+    const arr = pxSeriesArray();
+    const ref = arr[arr.length - 1][0];
+    let lo, hi;
+    if (pxState.from && pxState.to) { lo = pxState.from; hi = pxState.to; }
+    else { const d = parseD(ref); d.setMonth(d.getMonth() - (PERIOD_M[pxState.period] || 36)); lo = fmtD(d); hi = "99999999"; }
+    let f = arr.filter(p => p[0] >= lo && p[0] <= hi);
+    if (f.length < 2) f = arr.slice(-2);
+    // 다운샘플(최대 ~450)
+    const MAX = 450, step = Math.ceil(f.length / MAX);
+    let ds = step > 1 ? f.filter((_, i) => i % step === 0) : f.slice();
+    if (ds[ds.length - 1][0] !== f[f.length - 1][0]) ds.push(f[f.length - 1]);
+    const spanDays = (parseD(f[f.length - 1][0]) - parseD(f[0][0])) / 864e5;
+    const fmtLab = spanDays <= 200 ? (s => s.slice(4, 6) + "/" + s.slice(6, 8)) : (s => s.slice(2, 4) + "/" + s.slice(4, 6));
+    const series = ds.map(p => [fmtLab(p[0]), p[1]]);
+    let peakI = 0; ds.forEach((p, i) => { if (p[1] > ds[peakI][1]) peakI = i; });
+    const marks = [{ i: peakI, label: "최고 " + wonK(ds[peakI][1]), color: "#ff6b4a" }];
+    const bgI = ds.findIndex(p => p[0] >= "20190401" && p[0] <= "20190630");
+    if (bgI >= 0) marks.unshift({ i: bgI, label: "불곰'19", color: "#8b93a7" });
+    el("priceChart").innerHTML = svgLineArea(series, { h: 300, marks });
+    const fi = f[0], la = f[f.length - 1], chg = (la[1] - fi[1]) / fi[1] * 100;
+    const hp = Math.max(...f.map(p => p[1])), lp = Math.min(...f.map(p => p[1]));
+    el("priceStats").innerHTML =
+      `<span>${dot(fi[0])} → ${dot(la[0])}</span><span>고 <b>${wonK(hp)}</b> · 저 <b>${wonK(lp)}</b></span>` +
+      `<span class="${chg >= 0 ? "up" : "down"}">기간수익률 <b>${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</b></span>`;
+  }
+
+  function initPxControls() {
+    document.querySelectorAll(".pxbtns button").forEach(b => b.addEventListener("click", () => {
+      pxState.period = b.dataset.p; pxState.from = pxState.to = null;
+      el("pxFrom").value = ""; el("pxTo").value = "";
+      document.querySelectorAll(".pxbtns button").forEach(x => x.classList.toggle("on", x === b));
+      renderPriceChart();
+    }));
+    const fI = el("pxFrom"), tI = el("pxTo");
+    fI.min = tI.min = iso(PX[0][0]); fI.max = tI.max = iso(PX[PX.length - 1][0]);
+    el("pxApply").addEventListener("click", () => {
+      if (fI.value && tI.value) { pxState.from = fI.value.replace(/-/g, ""); pxState.to = tI.value.replace(/-/g, "");
+        document.querySelectorAll(".pxbtns button").forEach(x => x.classList.remove("on")); renderPriceChart(); }
+    });
+    el("pxRefresh").addEventListener("click", refreshPrice);
+  }
+
+  async function refreshPrice() {
+    const st = el("pxStatus"); st.textContent = "갱신 중…"; st.className = "sub";
+    const now = new Date(), s = new Date(now); s.setDate(s.getDate() - 16);
+    const url = `https://api.finance.naver.com/siseJson.naver?symbol=${C.meta.ticker}&requestType=1&startTime=${fmtD(s)}&endTime=${fmtD(now)}&timeframe=day`;
+    const proxies = [u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`];
+    for (const p of proxies) {
+      try {
+        const r = await fetch(p(url)); if (!r.ok) continue;
+        const t = await r.text();
+        const m = [...t.matchAll(/\["(\d{8})",\s*\d+,\s*\d+,\s*\d+,\s*(\d+)/g)];
+        if (!m.length) continue;
+        const last = m[m.length - 1], date = last[1], close = +last[2];
+        pxLive = { date, close }; pxRefreshed = true;
+        C.market.price = { value: close, date: iso(date), src: "naver_price" };
+        renderHero(); renderPriceChart();
+        st.textContent = `✓ 갱신됨: ${dot(date)} ${wonK(close)}`; st.className = "sub up";
+        refresh(); // 시나리오 결과의 현재가 기준선도 갱신
+        return;
+      } catch (e) { /* try next proxy */ }
+    }
+    st.textContent = "갱신 실패 — 프록시 차단. 정적 종가(2026-06-12) 유지"; st.className = "sub down";
   }
 
   // ---------- history charts ----------
@@ -252,7 +325,7 @@
     el("title").textContent = `${C.meta.name} (${C.meta.ticker})`;
     el("subtitle").innerHTML = `${C.meta.sector} · <span class="sub">${C.meta.origin}</span>`;
     el("genstamp").textContent = "생성 " + C.meta.asOf;
-    renderHero(); renderPriceChart(); renderHistory(); renderProfile();
+    renderHero(); renderPriceChart(); initPxControls(); renderHistory(); renderProfile();
     renderSliders(); renderPresets(); renderCalendar(); renderNarrative(); renderSources();
     refresh();
     el("printBtn").addEventListener("click", () => window.print());

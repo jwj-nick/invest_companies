@@ -22,7 +22,21 @@
     <!-- 히어로 + 주가 차트 -->
     <section class="panel hero-panel">
       <div id="hero" class="hero"></div>
-      <div class="chartbox"><div class="chart-h">주가 추이 <span class="sub">(월봉 종가, 2019.1~2026.6)</span></div><div id="priceChart"></div></div>
+      <div class="chartbox">
+        <div class="chart-h">주가 추이 <span class="sub">(일봉 종가)</span></div>
+        <div class="pxctl">
+          <div class="pxbtns">
+            <button data-p="6M">6개월</button><button data-p="1Y">1년</button><button data-p="3Y" class="on">3년</button><button data-p="10Y">10년</button><button data-p="ALL">전체</button>
+          </div>
+          <div class="pxdate">
+            <input type="date" id="pxFrom"><span>~</span><input type="date" id="pxTo"><button id="pxApply">적용</button>
+          </div>
+          <button id="pxRefresh" class="refbtn">↻ 최근종가 갱신</button>
+          <span id="pxStatus" class="sub"></span>
+        </div>
+        <div id="priceStats" class="pxstats"></div>
+        <div id="priceChart"></div>
+      </div>
     </section>
 
     <!-- 실적/배당 시각화 -->
