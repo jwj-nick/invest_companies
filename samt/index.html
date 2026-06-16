@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>에스에이엠티(031330) 시나리오 분석</title>
-  <link rel="stylesheet" href="assets/style.css?v=5">
+  <link rel="stylesheet" href="assets/style.css?v=6">
 </head>
 <body>
   <header class="top">
@@ -60,26 +60,65 @@
       <div id="timeline" class="timeline"></div>
     </section>
 
-    <!-- 시나리오 -->
-    <section class="panel split">
-      <div class="left">
-        <h2>3. 시나리오 가정 <span class="sub">— 슬라이더 실시간</span></h2>
-        <div id="presets" class="presets"></div>
-        <div id="sliders"></div>
-      </div>
-      <div class="right">
-        <h2>4. 추정 결과</h2>
-        <div class="resgrid">
-          <div class="rescard"><h3>연간 실적 (환산)</h3><div id="pnl"></div></div>
-          <div class="rescard hot"><h3>내년초 배당 추정</h3><div id="divbox"></div></div>
+    <!-- 시나리오 추정 -->
+    <section class="panel">
+      <h2>3. 시나리오 추정 <span class="sub">— 2027.3 배당 / 주가 밴드</span></h2>
+      <p class="sub">애널리스트 커버리지 없음(소형 유통주) → 본 시나리오가 유일한 프레임. <b>점 예측이 아니라 밴드</b>입니다. 슬라이더는 맨 아래 '고급 수동'으로 옮겼습니다.</p>
+      <p id="scnDriver" class="driver"></p>
+
+      <h3 class="subh">① 실적 시나리오 (FY2026 순이익)</h3>
+      <div id="scnTabs" class="seg"></div>
+      <div id="scnDetail" class="scndetail"></div>
+
+      <h3 class="subh">② 배당 정책 전제 <span class="sub">— 회사는 점진 DPS 정책(payout 공식 ≠ 현실)</span></h3>
+      <div id="polTabs" class="seg"></div>
+      <div id="polDetail"></div>
+
+      <div id="combo" class="combo"></div>
+      <div id="scnTriggers" class="triggers"></div>
+
+      <h3 class="subh">주가 밴드 매트릭스 (시나리오 × PER)</h3>
+      <div id="priceBandTbl"></div>
+
+      <details class="adv">
+        <summary>⚙ 고급: 수동 조정 (자유 실험 — 위 밴드가 정상범위 가이드)</summary>
+        <p class="sub">아래 배당값은 <b>단순 payout 공식</b>이라 현실(점진 DPS)보다 과대추정됩니다. 위 정책 밴드를 기준으로 보세요.</p>
+        <div class="split">
+          <div class="left">
+            <div id="presets" class="presets"></div>
+            <div id="sliders"></div>
+          </div>
+          <div class="right">
+            <div class="resgrid">
+              <div class="rescard"><h3>연간 실적 (환산)</h3><div id="pnl"></div></div>
+              <div class="rescard hot"><h3>배당 (단순 payout · 과대주의)</h3><div id="divbox"></div></div>
+            </div>
+            <div class="rescard wide"><h3>주가 추정 (4개 모델)</h3><div id="targets"></div></div>
+          </div>
         </div>
-        <div class="rescard wide"><h3>주가 추정 (4개 모델)</h3><div id="targets"></div></div>
+      </details>
+    </section>
+
+    <!-- 현금흐름의 함정 -->
+    <section class="panel">
+      <h2>4. 현금흐름의 함정 <span class="sub">— 이익 ≠ 배당</span></h2>
+      <p id="cfNote" class="cfnote"></p>
+      <div class="grid2">
+        <div class="cb"><div class="chart-h">영업활동 현금흐름 OCF <span class="sub">(억, 2년 연속 적자)</span></div><div id="cfChart"></div></div>
+        <div class="cb"><div class="chart-h">재무 스트레스</div><div id="balStress"></div></div>
       </div>
+    </section>
+
+    <!-- 추적 대시보드 -->
+    <section class="panel">
+      <h2>5. 추적 대시보드 <span class="sub">— 분기마다 확인</span></h2>
+      <div id="trackGrid" class="trackgrid"></div>
+      <div id="nextCat" class="nextcat"></div>
     </section>
 
     <!-- 이벤트 달력 -->
     <section class="panel">
-      <h2>5. 이벤트 달력 <span class="sub">(2026.7 ~ 2027.3)</span></h2>
+      <h2>6. 이벤트 달력 <span class="sub">(2026.7 ~ 2027.3)</span></h2>
       <p class="sub">SAMT는 삼성전자 메모리 사이클의 후행 거울 — 삼성 어닝이 SAMT 실적 선행지표. ★ = 배당 추정의 분기점.</p>
       <div id="calLegend" class="callegend"></div>
       <div id="calendar" class="calwrap"></div>
@@ -87,13 +126,13 @@
 
     <!-- 논지 -->
     <section class="panel">
-      <h2>6. 논지 & 경계</h2>
+      <h2>7. 논지 & 경계</h2>
       <div id="narrative" class="narrative"></div>
     </section>
 
     <!-- 출처 -->
     <section class="panel">
-      <h2>7. 출처</h2>
+      <h2>8. 출처</h2>
       <ol id="sources" class="sources"></ol>
       <p class="sub">⚠️ <span class="assref-legend">주황색 [n]</span> = 외부 출처가 아닌 분석 가정값. 실적/배당 확정치는 8월·11월 분기보고서, 2027.2 결산공시로 갱신.</p>
     </section>
@@ -101,8 +140,8 @@
     <footer class="ftr sub">equity-scenario-app · 데이터 교체 = assets/data.js · 본 자료는 투자 참고용이며 투자 권유가 아닙니다.</footer>
   </main>
 
-  <script src="assets/price.js?v=5"></script>
-  <script src="assets/data.js?v=5"></script>
-  <script src="assets/engine.js?v=5"></script>
+  <script src="assets/price.js?v=6"></script>
+  <script src="assets/data.js?v=6"></script>
+  <script src="assets/engine.js?v=6"></script>
 </body>
 </html>

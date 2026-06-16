@@ -278,6 +278,81 @@
       </tbody></table>`;
   }
 
+  // ---------- signed bar chart (현금흐름: 음수 허용) ----------
+  function svgSignedBars(series, opt) {
+    opt = opt || {}; const W = 1000, H = opt.h || 220, pad = 60, padB = 24;
+    const vals = series.map(d => d.value), maxV = Math.max(...vals, 0), minV = Math.min(...vals, 0), range = (maxV - minV) || 1;
+    const y = v => (H - padB) - (H - padB - 18) * ((v - minV) / range), zeroY = y(0);
+    const n = series.length, bw = (W - pad - 12) / n * 0.5, gap = (W - pad - 12) / n;
+    let grid = ""; [maxV, minV].forEach(v => { const yy = y(v);
+      grid += `<line x1="${pad}" y1="${yy}" x2="${W - 12}" y2="${yy}" class="grid"/><text x="${pad - 6}" y="${yy + 4}" class="yl" text-anchor="end">${wonK(v)}</text>`; });
+    grid += `<line x1="${pad}" y1="${zeroY}" x2="${W - 12}" y2="${zeroY}" class="zero"/>`;
+    let bars = ""; series.forEach((d, i) => { const bx = pad + gap * i + (gap - bw) / 2, vy = y(d.value), top = Math.min(vy, zeroY), h = Math.abs(vy - zeroY), col = d.value >= 0 ? "#35c46b" : "#ff5d6c";
+      bars += `<rect x="${bx}" y="${top}" width="${bw}" height="${h}" rx="3" fill="${col}"/>` +
+        `<text x="${bx + bw / 2}" y="${d.value >= 0 ? top - 6 : top + h + 15}" class="bl" text-anchor="middle" fill="${col}">${opt.lab ? opt.lab(d.value) : wonK(d.value)}</text>` +
+        `<text x="${bx + bw / 2}" y="${H - 6}" class="xl" text-anchor="middle">${d.label}</text>`; });
+    return `<svg viewBox="0 0 ${W} ${H}" class="chart">${grid}${bars}</svg>`;
+  }
+
+  // ---------- 시나리오 / 정책 프리셋 → 배당·주가 밴드 ----------
+  const scnState = { scn: "Base", pol: "A" };
+  function renderScenarioSection() {
+    const SC = C.scenarios2026, DP = C.dividendPolicies, PB = C.priceBand;
+    const EL = SC.eligibleShares, price = C.market.price.value;
+    el("scnDriver").innerHTML = `<b>실적 동인.</b> ${SC.driver}${srcSup(SC.src)}`;
+    el("scnTabs").innerHTML = SC.items.map(s => `<button class="segbtn" data-scn="${s.key}">${s.key}<span class="seglab">순익 ${eok(s.ni)}</span></button>`).join("");
+    el("polTabs").innerHTML = DP.items.map(p => `<button class="segbtn" data-pol="${p.key}">${p.label} <span class="stars">${"★".repeat(p.stars)}</span></button>`).join("");
+    el("scnTriggers").innerHTML =
+      `<div class="trig up"><b>상방 트리거</b> · ${DP.upTriggers.join(" · ")}</div>` +
+      `<div class="trig down"><b>하방 트리거</b> · ${DP.downTriggers.join(" · ")}</div>`;
+
+    const paint = () => {
+      const s = SC.items.find(x => x.key === scnState.scn), p = DP.items.find(x => x.key === scnState.pol);
+      document.querySelectorAll("[data-scn]").forEach(b => b.classList.toggle("on", b.dataset.scn === scnState.scn));
+      document.querySelectorAll("[data-pol]").forEach(b => b.classList.toggle("on", b.dataset.pol === scnState.pol));
+      el("scnDetail").innerHTML =
+        `<div class="sdtop">순이익 <b>${eok(s.ni)}</b> · EPS <b>${won(s.eps)}</b></div>` +
+        `<div class="sdh2"><span class="lbl">2H 가정</span> ${s.h2}</div><p class="why">${s.why}</p>`;
+      let dpsLow, dpsHigh, polExtra = "";
+      if (p.scaled) { dpsLow = perShareWon(s.ni * p.payoutLow, EL); dpsHigh = perShareWon(s.ni * p.payoutHigh, EL);
+        polExtra = ` <span class="sub">(성향 ${(p.payoutLow * 100)}~${(p.payoutHigh * 100)}% × ${s.key} 순익)</span>`; }
+      else { dpsLow = p.dpsLow; dpsHigh = p.dpsHigh; }
+      const yL = dpsLow / price * 100, yH = dpsHigh / price * 100;
+      const pbL = s.eps * PB.perSet[0], pbH = s.eps * PB.perSet[PB.perSet.length - 1];
+      el("polDetail").innerHTML = `<p class="why">${p.why}</p>`;
+      el("combo").innerHTML =
+        `<div class="cobox hot"><div class="colab">2027.3 예상 주당배당 · 정책 ${p.key}${polExtra}</div><div class="coval">${won(dpsLow)} ~ ${won(dpsHigh)}</div><div class="cosub">시가배당률 ${yL.toFixed(1)}~${yH.toFixed(1)}% · 총액 ${eok(dpsLow * EL / 1e8)}~${eok(dpsHigh * EL / 1e8)}</div></div>` +
+        `<div class="cobox"><div class="colab">예상 주가밴드 · ${s.key} EPS × PER ${PB.perSet[0]}~${PB.perSet[PB.perSet.length - 1]}배</div><div class="coval">${wonK(pbL)} ~ ${wonK(pbH)}원</div><div class="cosub">현재가 대비 ${((pbL - price) / price * 100).toFixed(0)}% ~ +${((pbH - price) / price * 100).toFixed(0)}%</div></div>` +
+        `<div class="cobox cen"><div class="colab">중심 추정 (정책 A 가중)</div><div class="coval">${won(DP.central.low)} ~ ${won(DP.central.high)}</div><div class="cosub">FY25 230원 대비 +${((DP.central.low / 230 - 1) * 100).toFixed(0)}~+${((DP.central.high / 230 - 1) * 100).toFixed(0)}%</div></div>`;
+      el("priceBandTbl").innerHTML =
+        `<table class="pbtbl"><thead><tr><th>시나리오</th><th class="num">EPS</th>${PB.perSet.map(x => `<th class="num">PER ${x}배</th>`).join("")}</tr></thead><tbody>` +
+        SC.items.map(x => `<tr class="${x.key === scnState.scn ? "act" : ""}"><td><b>${x.key}</b></td><td class="num">${wonK(x.eps)}</td>${PB.perSet.map(m => `<td class="num">${wonK(x.eps * m)}</td>`).join("")}</tr>`).join("") +
+        `</tbody></table><p class="sub">${PB.note}${srcSup(PB.src)}</p>`;
+    };
+    document.querySelectorAll("[data-scn]").forEach(b => b.addEventListener("click", () => { scnState.scn = b.dataset.scn; paint(); }));
+    document.querySelectorAll("[data-pol]").forEach(b => b.addEventListener("click", () => { scnState.pol = b.dataset.pol; paint(); }));
+    paint();
+  }
+
+  // ---------- 현금흐름 함정 ----------
+  function renderCashflow() {
+    const cf = C.cashflow, bs = C.balanceStress;
+    el("cfNote").innerHTML = `<b>⚠️ 이익 ≠ 배당.</b> ${cf.note}${srcSup(cf.src)}`;
+    el("cfChart").innerHTML = svgSignedBars(cf.years.map((y, i) => ({ label: y, value: cf.ocf[i] })), { h: 220, lab: v => wonK(v) });
+    el("balStress").innerHTML =
+      `<table class="bstbl"><thead><tr><th>지표</th>${bs.cols.map(c => `<th class="num">${c}</th>`).join("")}<th>비고</th></tr></thead><tbody>` +
+      bs.rows.map(r => `<tr><td>${r.k}</td>${r.v.map(x => `<td class="num">${x}</td>`).join("")}<td class="sub">${r.note}</td></tr>`).join("") +
+      `</tbody></table><p class="sub">${bs.invTurn}${srcSup(bs.src)} · 2025 재무활동현금흐름 +${wonK(cf.fin[2])}억(차입), 기말현금 ${wonK(cf.cash[2])}억</p>`;
+  }
+
+  // ---------- 추적 대시보드 ----------
+  function renderTracking() {
+    const t = C.trackIndicators, nx = C.scenarios2026.next;
+    el("trackGrid").innerHTML = t.items.map((x, i) =>
+      `<div class="tcard"><div class="tkn">${i + 1}. ${x.k}</div><div class="tnow">현재 <b>${x.now}</b></div><div class="twatch">관찰: ${x.watch}</div><div class="trole sub">${x.role}</div></div>`).join("");
+    el("nextCat").innerHTML = `🎯 <b>다음 검증 시점</b> · ${nx.event} <span class="sub">(${nx.date})</span> — ${nx.watch}${srcSup(t.src)}`;
+  }
+
   // ---------- calendar (월별 미니 달력) ----------
   const WD = ["일", "월", "화", "수", "목", "금", "토"];
   function renderCalendar() {
@@ -341,6 +416,7 @@
     el("subtitle").innerHTML = `${C.meta.sector} · <span class="sub">${C.meta.origin}</span>`;
     el("genstamp").textContent = "생성 " + C.meta.asOf;
     renderHero(); renderPriceChart(); initPxControls(); renderHistory(); renderProfile();
+    renderScenarioSection(); renderCashflow(); renderTracking();
     renderSliders(); renderPresets(); renderCalendar(); renderNarrative(); renderSources();
     refresh();
     el("printBtn").addEventListener("click", () => window.print());
